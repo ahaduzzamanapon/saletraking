@@ -111,4 +111,59 @@ class VisitController extends Controller
 
         return response()->json(['schedules' => $schedules]);
     }
+
+    /**
+     * Simple one-tap visit log (no check-in/check-out, just a point-in-time record).
+     * Salesperson name-drops a client + location while GPS is tracking.
+     */
+    public function log(Request $request)
+    {
+        $data = $request->validate([
+            'client_name' => 'required|string|max:255',
+            'lat'         => 'required|numeric',
+            'lng'         => 'required|numeric',
+            'outcome'     => 'nullable|in:order_placed,follow_up,not_interested,demo_requested,other',
+            'order_value' => 'nullable|numeric',
+            'notes'       => 'nullable|string|max:1000',
+            'rating'      => 'nullable|integer|between:1,5',
+        ]);
+
+        $user = $request->user();
+
+        // Find or create client by name (under this rep)
+        $client = \App\Models\Client::firstOrCreate(
+            ['name' => $data['client_name'], 'assigned_to' => $user->id],
+            ['address' => '', 'lat' => $data['lat'], 'lng' => $data['lng']]
+        );
+
+        $visit = Visit::create([
+            'salesperson_id' => $user->id,
+            'client_id'      => $client->id,
+            'checkin_at'     => now(),
+            'checkout_at'    => now(),
+            'checkin_lat'    => $data['lat'],
+            'checkin_lng'    => $data['lng'],
+            'checkin_method' => 'auto',
+            'status'         => 'completed',
+            'outcome'        => $data['outcome'] ?? null,
+            'order_value'    => $data['order_value'] ?? null,
+            'notes'          => $data['notes'] ?? null,
+            'rating'         => $data['rating'] ?? null,
+        ]);
+
+        // Update daily target
+        $target = Target::where('user_id', $user->id)
+            ->where('type', 'daily')
+            ->whereDate('period_date', today())
+            ->first();
+
+        if ($target) {
+            $target->increment('visits_achieved');
+            if (!empty($data['order_value'])) {
+                $target->increment('sales_achieved', $data['order_value']);
+            }
+        }
+
+        return response()->json(['visit' => $visit->load('client:id,name,address')], 201);
+    }
 }
