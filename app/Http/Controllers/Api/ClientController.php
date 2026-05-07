@@ -19,4 +19,28 @@ class ClientController extends Controller
 
         return response()->json(['clients' => $clients]);
     }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'            => 'required|string|max:255',
+            'address'         => 'nullable|string',
+            'lat'             => 'required|numeric',
+            'lng'             => 'required|numeric',
+            'contact_name'    => 'nullable|string|max:100',
+            'contact_phone'   => 'nullable|string|max:20',
+            'category'        => 'nullable|string|max:100',
+            'geofence_radius' => 'nullable|integer|min:50|max:1000',
+        ]);
+
+        $user = $request->user();
+
+        $client = Client::create(array_merge($data, [
+            'assigned_to'  => $user->id,
+            'territory_id' => $user->territory_id,
+            'is_active'    => true,
+        ]));
+
+        return response()->json(['message' => 'Client created successfully', 'client' => $client], 201);
+    }
 }

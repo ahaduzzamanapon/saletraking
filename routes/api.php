@@ -27,7 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/locations/batch', [LocationController::class, 'batchPing']);
 
     // Clients
-    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients',  [ClientController::class, 'index']);
+    Route::post('/clients', [ClientController::class, 'store']);
 
     // Visits
     Route::get('/visits',                  [VisitController::class, 'index']);

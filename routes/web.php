@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to admin login
 Route::redirect('/', '/admin/login');
 
+// Fallback for Laravel's default 'login' route redirect (e.g. when unauthenticated)
+Route::get('/login', fn() => redirect()->route('admin.login'))->name('login');
+
 // Admin auth (guest)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest')->group(function () {
