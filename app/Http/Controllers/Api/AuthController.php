@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -56,6 +57,6 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('territory');
-        return response()->json(['user' => $user]);
+        return response()->json(['user' => new UserResource($user)]);
     }
 }

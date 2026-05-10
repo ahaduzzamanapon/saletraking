@@ -14,7 +14,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'role', 'phone',
         'employee_id', 'territory_id', 'fcm_token', 'avatar',
-        'is_active', 'last_seen_at',
+        'is_active', 'last_seen_at', 'is_working', 'work_started_at', 'work_ended_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -25,7 +25,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
+            'is_working'        => 'boolean',
             'last_seen_at'      => 'datetime',
+            'work_started_at'   => 'datetime',
+            'work_ended_at'     => 'datetime',
         ];
     }
 

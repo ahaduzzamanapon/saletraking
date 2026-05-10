@@ -12,12 +12,16 @@ class VisitController extends Controller
 {
     public function index(Request $request)
     {
-        $visits = Visit::where('salesperson_id', $request->user()->id)
+        $query = Visit::where('salesperson_id', $request->user()->id)
             ->with('client:id,name,address')
-            ->orderByDesc('checkin_at')
-            ->paginate(20);
+            ->orderByDesc('checkin_at');
 
-        return response()->json($visits);
+        // ?today=1 filters to only today's visits (used by Flutter home tab)
+        if ($request->boolean('today')) {
+            $query->whereDate('checkin_at', today());
+        }
+
+        return response()->json($query->paginate(50));
     }
 
     public function checkin(Request $request)
@@ -130,11 +134,22 @@ class VisitController extends Controller
 
         $user = $request->user();
 
-        // Find or create client by name (under this rep)
-        $client = \App\Models\Client::firstOrCreate(
-            ['name' => $data['client_name'], 'assigned_to' => $user->id],
-            ['address' => '', 'lat' => $data['lat'], 'lng' => $data['lng']]
-        );
+        // Case-insensitive dedup: normalise name before lookup
+        $normalName = trim($data['client_name']);
+        $client = \App\Models\Client::whereRaw('LOWER(name) = ?', [strtolower($normalName)])
+            ->where('assigned_to', $user->id)
+            ->first();
+
+        if (!$client) {
+            $client = \App\Models\Client::create([
+                'name'        => $normalName,
+                'assigned_to' => $user->id,
+                'address'     => '',
+                'lat'         => $data['lat'],
+                'lng'         => $data['lng'],
+                'is_active'   => true,
+            ]);
+        }
 
         $visit = Visit::create([
             'salesperson_id' => $user->id,
